@@ -18,11 +18,14 @@ in a shell history and a process list.
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+# The working implementation by default: this script exists to try a provider, not to test a stub.
+IMPL = os.environ.get("IMPL", "reference")
+sys.path.insert(0, str(ROOT / IMPL))
 
 from scout.cite import check_answer, summarise  # noqa: E402
 from scout.corpus import document_map, load_corpus, section_map  # noqa: E402
@@ -69,7 +72,7 @@ def main() -> int:
     )
 
     print()
-    print(f" provider        {model.name}")
+    print(f" provider        {model.name} ({IMPL})")
     print(f" sub-questions   {len(built.sub_questions)}")
     for item in built.sub_questions:
         print(f"   {item.id} {item.query}")

@@ -97,3 +97,5 @@ What it still cannot do, stated here so it is not discovered late:
 - **Detect contradiction.** Two current documents that disagree pass through untouched.
 - **Retry.** One round of research, no loop.
 - **Run in parallel.** `schedule` simulates completion order; nothing spawns a thread.
+- **Tell versions apart.** `1.3` tokenises to `1` and `3`, and both are dropped, so "TLS 1.3" and
+  "TLS 1.2" index the same. `scout.text.terms` records why that was left alone.

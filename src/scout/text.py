@@ -34,7 +34,15 @@ _WORD = re.compile(r"[a-z0-9]+")
 
 
 def terms(text: str) -> list[str]:
-    """Lowercase alphanumeric runs. `Content-Type` becomes `content` and `type`."""
+    """Lowercase alphanumeric runs. `Content-Type` becomes `content` and `type`.
+
+    Limitation, and it is a real one: `1.3` becomes `1` and `3`, both of which `content_terms`
+    then drops as one-character noise. So "TLS 1.3" and "TLS 1.2" index identically, and a
+    question that turns on the version is answered by whichever sections mention TLS most. The
+    fix is a tokeniser that keeps a dotted numeric run together, and it was not made here
+    because it moves every number in every lesson and the effect is not what the stages teach.
+    """
+
     return _WORD.findall(text.lower())
 
 
