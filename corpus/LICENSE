@@ -1,0 +1,23 @@
+# Corpus licence
+
+The eight documents in `rfc/` are verbatim RFC text published by the RFC Editor on behalf
+of the IETF Trust.
+
+**Terms.** RFC documents are made available under the IETF Trust Legal Provisions (TLP),
+which permit reproduction and distribution of IETF Documents. Each document carries its own
+copyright notice, and those notices are preserved in `rfc/` — the cleaner keeps everything
+from the Abstract onwards, which includes the "Copyright Notice" section of every file.
+
+- Trust Legal Provisions: https://trustee.ietf.org/license-info/
+- The grant from contributors to the Trust is described in RFC 5378, section 5.3:
+  https://www.rfc-editor.org/rfc/rfc5378
+
+**What was changed.** Only page furniture: running page headers, page footers, form feeds,
+the IETF front matter block, and the table of contents. The body text, section numbering,
+reference lists and author addresses are unmodified. The exact transformation is
+`scripts/fetch_corpus.py`, and `corpus/SOURCES.json` records a SHA-256 of both the downloaded
+original and the cleaned file, so anyone can verify the claim rather than trust it.
+
+**What is not claimed.** This project is not affiliated with the IETF. Nothing here is an
+IETF publication, and a citation produced by `scout` is a citation to the RFC, not an
+endorsement by its authors.
