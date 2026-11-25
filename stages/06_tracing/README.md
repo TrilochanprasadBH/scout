@@ -4,7 +4,7 @@
 python stages/06_tracing/test_stage06.py
 ```
 
-Eighteen tests. Fourteen fail on the stub.
+18 tests. Run them before writing code: the failures are the contract.
 
 ---
 

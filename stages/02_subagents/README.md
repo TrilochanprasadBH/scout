@@ -4,7 +4,7 @@
 python stages/02_subagents/test_stage02.py
 ```
 
-Nineteen tests. Fourteen fail on the stub.
+19 tests. Run them before writing code: the failures are the contract.
 
 ---
 

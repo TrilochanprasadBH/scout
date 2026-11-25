@@ -4,7 +4,7 @@
 python stages/04_citations/test_stage04.py
 ```
 
-Seventeen tests. Thirteen fail on the stub.
+17 tests. Run them before writing code: the failures are the contract.
 
 ---
 

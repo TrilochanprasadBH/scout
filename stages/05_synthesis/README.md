@@ -4,7 +4,7 @@
 python stages/05_synthesis/test_stage05.py
 ```
 
-Sixteen tests. Twelve fail on the stub.
+16 tests. Run them before writing code: the failures are the contract.
 
 ---
 
@@ -74,6 +74,8 @@ the answer.
 | dev | **synthesise** | 54 | 54 | **0** | 13 | **8** | 5 |
 | test | concatenate | 48 | 40 | 8 | 7 | 0 | 10 |
 | test | **synthesise** | 31 | 31 | **0** | 7 | **6** | 3 |
+
+Totals: 87 sentences and 22 redundant before; 54 and 0 after; 8 and 6 conflicts.
 
 **Redundancy goes to zero and the evidence does not move.** Gold coverage is identical: 13 of 13
 development questions and 7 of 7 held out keep at least one gold section. The answer shrinks by 38%

@@ -25,11 +25,31 @@ sys.path.insert(0, str(ROOT / "reference"))
 
 from scout.corpus import all_sections, load_corpus  # noqa: E402
 from scout.gold import load_questions, split_questions  # noqa: E402
+from scout.subagent import run_all  # noqa: E402
+from scout.text import fingerprint  # noqa: E402
 from scout.model import ScriptedModel  # noqa: E402
 from scout.plan import budget_share, plan  # noqa: E402
 from scout.search import Index  # noqa: E402
 
 BUDGET = 20
+
+
+def stage_test_total(stage: str) -> int:
+    """How many tests a stage has, measured by running them against the reference."""
+    import os
+    import re
+    import subprocess
+
+    test = sorted((ROOT / "stages" / stage).glob("test_*.py"))[0]
+    result = subprocess.run(
+        [sys.executable, str(test)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "IMPL": "reference"},
+    )
+    match = re.search(r"Ran (\d+) tests", result.stderr)
+    return int(match.group(1)) if match else -1
 
 
 def main() -> int:
@@ -72,7 +92,7 @@ def main() -> int:
 
     # ---------------------------------------------------------------- stage 02: sub-agents
     from scout.baselines_subagent import single_context  # noqa: E402
-    from scout.subagent import run_all, total_tokens  # noqa: E402
+    from scout.subagent import total_tokens  # noqa: E402
 
     def fanout(question):
         built = plan(question.question, model, index, evidence_budget=BUDGET)
@@ -257,6 +277,47 @@ def main() -> int:
     both_wide = citation_summary(dev + test, threshold=0.30)
     both_default = citation_summary(dev + test)
 
+    # --------------------------------------------------------------- stage 05: synthesis
+    from scout.synth import concatenate, synthesise  # noqa: E402
+
+    def synthesis_arm(subset):
+        rows = []
+        for question in subset:
+            if not question.answerable:
+                continue
+            built = plan(question.question, model, index, evidence_budget=BUDGET)
+            per_worker = max(1, BUDGET // max(1, len(built.sub_questions)))
+            findings = run_all(built.sub_questions, index, model, max_reads=per_worker)
+            joined = concatenate(findings)
+            written = synthesise(
+                question.question, findings, model,
+                documents=documents_by_id, sections=sections_by_id,
+            )
+            gold = question.gold_sections("current")
+            rows.append(
+                {
+                    "concat_sentences": len(joined.sentences),
+                    "concat_redundant": len(joined.sentences)
+                    - len({fingerprint(s.text) for s in joined.sentences}),
+                    "synth_sentences": len(written.sentences),
+                    "synth_redundant": len(written.sentences)
+                    - len({fingerprint(s.text) for s in written.sentences}),
+                    "conflicts": len(written.conflicts),
+                    "obsolete": sum(
+                        1
+                        for sentence in written.sentences
+                        if sentence.section in sections_by_id
+                        and not documents_by_id[sections_by_id[sentence.section].document].current
+                    ),
+                    "concat_gold": len({s.section for s in joined.sentences} & gold),
+                    "synth_gold": len({s.section for s in written.sentences} & gold),
+                }
+            )
+        return {key: sum(row[key] for row in rows) for key in rows[0]}
+
+    dev_synth = synthesis_arm(dev)
+    test_synth = synthesis_arm(test)
+
     # ---------------------------------------------------------------- stage 06: assembled
     from scout.synth import synthesise  # noqa: E402
     from scout.trace import attribute, completeness, locate, record  # noqa: E402
@@ -326,6 +387,14 @@ def main() -> int:
     test_all = assembled(test)
 
     plan_lesson = "stages/01_plan/README.md"
+    lessons = {
+        "01_plan": "stages/01_plan/README.md",
+        "02_subagents": "stages/02_subagents/README.md",
+        "03_budget": "stages/03_budget/README.md",
+        "04_citations": "stages/04_citations/README.md",
+        "05_synthesis": "stages/05_synthesis/README.md",
+        "06_tracing": "stages/06_tracing/README.md",
+    }
     sub_lesson = "stages/02_subagents/README.md"
     budget_lesson = "stages/03_budget/README.md"
     cite_lesson = "stages/04_citations/README.md"
@@ -374,6 +443,13 @@ def main() -> int:
         (f"{dev_cite['coverage']:.0%}", [cite_lesson]),
         (f"{both_wide['coverage']:.0%}", [cite_lesson]),
         (f"{dev_cite['gold_dropped']:.0f}", [cite_lesson]),
+        # stage 05: one unambiguous summary line, because bare small integers match anything
+        (
+            f"Totals: {dev_synth['concat_sentences']} sentences and {dev_synth['concat_redundant']}"
+            f" redundant before; {dev_synth['synth_sentences']} and {dev_synth['synth_redundant']}"
+            f" after; {dev_synth['conflicts']} and {test_synth['conflicts']} conflicts.",
+            [synth_lesson],
+        ),
         # stage 06
         (f"{dev_all['full']}/{dev_all['n']}", [README_DOC, trace_lesson]),
         (f"{test_all['full']}/{test_all['n']}", [README_DOC, trace_lesson]),
@@ -385,6 +461,11 @@ def main() -> int:
         (f"{test_all['tokens']:.0f}", [trace_lesson]),
         (f"{dev_all['localised']:.0%}", [trace_lesson]),
     ]
+
+    # Every lesson's test count, measured rather than remembered.
+    for name, relative in lessons.items():
+        total = stage_test_total(name)
+        expectations.append((f"{total} tests. Run them before writing code", [relative]))
 
     problems: list[str] = []
     for value, files in expectations:
@@ -424,6 +505,12 @@ def main() -> int:
     print(f" assembled test   {test_all['full']}/{test_all['n']} full, gold {test_all['gold']:.2f},"
           f" precision {test_all['precision']:.0%}, stale {test_all['stale']:.0f},"
           f" {test_all['tokens']:.0f} tokens")
+    print(f" synthesis dev    concat {dev_synth['concat_sentences']} sentences"
+          f" ({dev_synth['concat_redundant']} redundant) -> {dev_synth['synth_sentences']}"
+          f" ({dev_synth['synth_redundant']} redundant), {dev_synth['conflicts']} conflicts")
+    print(f" synthesis test   concat {test_synth['concat_sentences']} sentences"
+          f" ({test_synth['concat_redundant']} redundant) -> {test_synth['synth_sentences']}"
+          f" ({test_synth['synth_redundant']} redundant), {test_synth['conflicts']} conflicts")
     print(f" problems         {len(problems)}")
     for problem in problems:
         print(f"   {problem}")

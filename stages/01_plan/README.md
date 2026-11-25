@@ -4,7 +4,7 @@
 python stages/01_plan/test_stage01.py
 ```
 
-Eighteen tests. Fifteen fail on the stub.
+18 tests. Run them before writing code: the failures are the contract.
 
 ---
 

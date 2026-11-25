@@ -4,7 +4,7 @@
 python stages/03_budget/test_stage03.py
 ```
 
-Eighteen tests. Fourteen fail on the stub.
+18 tests. Run them before writing code: the failures are the contract.
 
 ---
 
