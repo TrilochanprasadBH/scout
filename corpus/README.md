@@ -1,6 +1,6 @@
 # The corpus
 
-Eight RFCs, 1.1 MB cleaned, 792 sections. This is what `scout` searches.
+Eight RFCs, 1.1 MB cleaned, 711 sections. This is what `scout` searches.
 
 | document | topic | why it is here |
 | --- | --- | --- |

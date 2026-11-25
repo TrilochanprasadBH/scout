@@ -56,7 +56,8 @@ def main() -> int:
     documents = load_corpus(ROOT)
     index = Index(all_sections(documents))
     model = ScriptedModel()
-    dev, test = split_questions(load_questions(ROOT / "evals" / "questions.jsonl"))
+    all_questions = load_questions(ROOT / "evals" / "questions.jsonl")
+    dev, test = split_questions(all_questions)
 
     def baseline(question):
         return {hit.section.id for hit in index.search(question.question, k=BUDGET)}
@@ -461,6 +462,15 @@ def main() -> int:
         (f"{test_all['tokens']:.0f}", [trace_lesson]),
         (f"{dev_all['localised']:.0%}", [trace_lesson]),
     ]
+
+    # Corpus and golden-set size, the numbers that move when either is rebuilt.
+    expectations.extend(
+        [
+            (f"{len(index.sections)} sections", ["README.md", "corpus/README.md"]),
+            (f"{len(all_questions)} questions", ["README.md"]),
+            (f"{len(dev)} development, {len(test)} held out", ["README.md"]),
+        ]
+    )
 
     # Every lesson's test count, measured rather than remembered.
     for name, relative in lessons.items():
